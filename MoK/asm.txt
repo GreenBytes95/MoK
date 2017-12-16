@@ -1,0 +1,49 @@
+8B FF mov edi,edi
+55 push ebp
+8B EC mov ebp,esp
+83 EC 1C sub esp,1C
+8B 45 08 mov eax,[ebp+08]
+83 65 E4 00 and dword ptr [ebp-1C],00
+83 65 F8 00 and dword ptr [ebp-08],00
+89 45 F4 mov [ebp-0C],eax
+8B 45 0C mov eax,[ebp+0C]
+89 45 E8 mov [ebp-18],eax
+8B 45 10 mov eax,[ebp+10]
+89 45 EC mov [ebp-14],eax
+8B 45 14 mov eax,[ebp+14]
+89 45 F0 mov [ebp-10],eax
+8B 45 18 mov eax,[ebp+18]
+89 45 FC mov [ebp-04],eax
+8D 45 E4 lea eax,[ebp-1C]
+6A 1C push 1C
+50 push eax
+6A 01 push 01
+FF 15 ???????? call dword ptr [76DBFAD8] // gSharedInfo + 1C18
+8B E5 mov esp,ebp
+5D pop ebp
+C2 1400 ret 0014
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+8B 01 mov eax,[ecx]
+85 C0 test eax,eax
+74 04 je 76DAD3A1
+8B 10 mov edx,[eax]
+89 11 mov [ecx],edx
+C3 ret
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3 
+CC int 3
