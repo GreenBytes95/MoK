@@ -45,6 +45,11 @@ DeclareModule MoK
   #Move = 16;
   #Click = #UP | #Down
   
+  #KeyboardPS2    =   2
+  #MousePS2       =   4
+  #DeviceHID      =   8
+  #DeviceDigiUSB  =   16
+  
   #USB_PID=$8036
   #USB_VID=$2341
   
@@ -68,6 +73,15 @@ DeclareModule MoK
     Out32.l
     IsInpOutDriverOpen.l
     Key.b
+  EndStructure
+  
+  Structure PSP_DEVICE_INTERFACE_DETAIL_DATA
+    cbSize.l
+    CompilerIf #PB_Compiler_Processor = #PB_Processor_x64
+      DevicePath.l
+    CompilerElse 
+      DevicePath.c
+    CompilerEndIf
   EndStructure
   
   ;}----------------------------------------------------------
@@ -105,6 +119,42 @@ EndDeclareModule
 
 Module MoK
   ;-----------------------------------------------------------
+  ;-       MouseKey Module -> HID -> Prototype
+  ;{----------------------------------------------------------
+  
+  Global LibHid = OpenLibrary(#PB_Any, "hid.dll")
+  Global LibSetupApi = OpenLibrary(#PB_Any, "setupapi.dll")
+  
+  Prototype HidD_GetHidGuid(*HidGuid.GUID) : Global HidD_GetHidGuid.HidD_GetHidGuid = GetFunction(LibHID, "HidD_GetHidGuid")
+  Prototype SetupDiEnumDeviceInterfaces(*DeviceInfoSet, DeviceInfoData, *InterfaceClassGuid.GUID, MemberIndex, *DeviceInterfaceData.SP_DEVICE_INTERFACE_DATA) : Global SetupDiEnumDeviceInterfaces.SetupDiEnumDeviceInterfaces = GetProcAddress_(LibSetupApi,"SetupDiEnumDeviceInterfaces")
+  Prototype SetupDiGetDeviceInterfaceDetail(*DeviceInfoSet, *DeviceInterfaceData.SP_DEVICE_INTERFACE_DATA, DeviceInterfaceDetailData, DeviceInterfaceDetailDataSize, *RequiredSize, *DeviceInfoData) : Global SetupDiGetDeviceInterfaceDetail.SetupDiGetDeviceInterfaceDetail = GetProcAddress_(LibSetupApi,"SetupDiGetDeviceInterfaceDetailA")
+  
+  ;}----------------------------------------------------------
+  ;-       MouseKey Module -> HID -> Procedure
+  ;{----------------------------------------------------------
+  
+  Procedure.l OpenHID()
+    Protected HidGuid.GUID, devInfoData.SP_DEVICE_INTERFACE_DATA, Length.l
+    Protected *detailData.PSP_DEVICE_INTERFACE_DETAIL_DATA, Required, hDevice.l
+    HidD_GetHidGuid(@HidGuid)
+    Protected hDevInfo=SetupDiGetClassDevs_(@HidGuid, 0, 0, #DIGCF_PRESENT | #DIGCF_ALLCLASSES | #DIGCF_DEVICEINTERFACE)
+    If Not hDevInfo : ProcedureReturn 0 : EndIf
+    For i=0 To 255
+      If Not SetupDiEnumDeviceInterfaces(hDevInfo, 0, @HidGuid, i, @devInfoData) : Break : EndIf
+      If SetupDiGetDeviceInterfaceDetail(hDevInfo, @devInfoData, 0, 0,@Length, 0)
+        *detailData=AllocateMemory(Length)
+        *detailData\cbSize=SizeOf(PSP_DEVICE_INTERFACE_DETAIL_DATA)
+        SetupDiGetDeviceInterfaceDetail(hDevInfo, @devInfoData, *detailData, Length+1, @Required, 0)
+        DevicePath.s=PeekS(@*detailData\DevicePath)
+        FreeMemory(*detailData)
+        Debug DevicePath
+      EndIf
+    Next
+  EndProcedure
+  
+  ;OpenHID()
+  
+  ;}----------------------------------------------------------
   ;-       MouseKey Module -> Init
   ;{----------------------------------------------------------
   
@@ -202,7 +252,7 @@ Module MoK
         ProcedureReturn CallFunctionFast(?NtUserSendInput, cInputs.l, pInputs.l, cbSize.l)
     EndSelect
     SendInput_(cInputs.l, pInputs.l, cbSize.l)
-  EndProcedure
+  EndProcedure  
   
   ;}----------------------------------------------------------
   ;-       MouseKey Module -> Mouse
@@ -447,6 +497,17 @@ Module MoK
   EndProcedure
   
   ;}----------------------------------------------------------
+  ;-       MouseKey Module -> Is [Function]
+  ;{----------------------------------------------------------
+  
+  Procedure IsDevice()
+    Protected fDevice.l
+    If Not hHID : hHID = HID::OpenDevice(#USB_PID, #USB_VID) : EndIf
+    If hHID <> 0 : fDevice = fDevice | #DeviceHID : EndIf
+    
+  EndProcedure
+  
+  ;}----------------------------------------------------------
   ;-       MouseKey Module -> Declare
   ;{----------------------------------------------------------
   
@@ -526,10 +587,10 @@ CompilerEndIf
 ; Delay(32)
 ; MoK::Keyboard(#VK_1, 32, MoK::#Click, MoK::#HID)
 
-; IDE Options = PureBasic 5.50 (Windows - x86)
-; CursorPosition = 494
-; FirstLine = 114
-; Folding = gsSli---
+; IDE Options = PureBasic 5.60 (Windows - x86)
+; CursorPosition = 19
+; FirstLine = 8
+; Folding = ---------
 ; EnableAsm
 ; EnableThread
 ; EnableXP
