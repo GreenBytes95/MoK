@@ -5,3 +5,7 @@ MoK
 
 **Поддерживаеммые микроконтроллеры:**
 * Arduino Leonardo (32U4 , 16U4)
+
+## Функции
+
+Все функции указаны в [wiki](https://github.com/GreenBytes95/Device/wiki)
