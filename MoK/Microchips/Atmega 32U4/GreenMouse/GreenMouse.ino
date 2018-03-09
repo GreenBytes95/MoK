@@ -8,11 +8,15 @@
  */
 
 #include <Arduino.h>
-#include <Wire.h>
 #include "HID-Project.h"
+
+#define DeviceID                36 // Version 1
+#define DeviceType              1  // TypeDevice
+#define DeviceKey               1000
 
 #define MOUSE                   1
 #define KEYBOARD                2
+#define IDentifier              240
 
 #define Left                    0
 #define Right                   1
@@ -36,8 +40,15 @@ struct _HID {
   int iByte;
 };
 
+struct _KEY {
+  byte ID;
+  long Key;
+  byte Type;
+};
+
 struct Device {
   MoK MoK;
+  _KEY KEY;
   _HID HID;
 };
 
@@ -48,6 +59,9 @@ void setup() {
   RawHID.begin(Device.HID.HID, sizeof(Device.HID.HID));
   Keyboard.begin();
   Mouse.begin();
+  Device.KEY.ID   = DeviceID;
+  Device.KEY.Key  = DeviceKey;
+  Device.KEY.Type = DeviceType;
 }
 
 void loop() {
@@ -58,11 +72,11 @@ void loop() {
     }
     memcpy(&Device.MoK, &Device.HID.Recv[0], sizeof(MoK) );
     _Device();
-    Serial.println("-- Debug --");
-    Serial.print("MoK.cType = ");Serial.println(Device.MoK.cType);
-    Serial.print("MoK.cKey = ");Serial.println(Device.MoK.cKey);
-    Serial.print("MoK.cMethod = ");Serial.println(Device.MoK.cMethod);
-    Serial.print("MoK.cParam = ");Serial.println(Device.MoK.cParam);
+    //Serial.println("-- Debug --");
+    //Serial.print("MoK.cType = ");Serial.println(Device.MoK.cType);
+    //Serial.print("MoK.cKey = ");Serial.println(Device.MoK.cKey);
+    //Serial.print("MoK.cMethod = ");Serial.println(Device.MoK.cMethod);
+    //Serial.print("MoK.cParam = ");Serial.println(Device.MoK.cParam);
   }
 }
 
@@ -117,6 +131,10 @@ void _Device() {
       break;
     case KEYBOARD:
       _Keyboard();
+      break;
+    case IDentifier:
+      memcpy(&Device.HID.Recv[0], &Device.KEY, sizeof(_KEY) );
+      RawHID.write(&Device.HID.Recv[0], 128);
       break;
   }
 }

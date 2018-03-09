@@ -46,6 +46,12 @@ DeclareModule MoK
   
   #HID_RX_TX_SIZE = 128 + 2;
   
+  #IDentifier     = 240
+  
+  #DeviceID       = 0
+  #DeviceKey      = 1
+  #DeviceType     = 2
+  
   ;}----------------------------------------------------------
   ;-       MouseKey -> HID -> Constants
   ;{----------------------------------------------------------
@@ -107,6 +113,14 @@ DeclareModule MoK
   ;-       MouseKey Structure
   ;{----------------------------------------------------------
   
+  Structure _KEY
+    __NOP.a
+    ID.a
+    Key.l
+    Type.a
+    _NOP.a[#HID_RX_TX_SIZE - 1 - 4 - 1 - 2]
+  EndStructure
+  
   Structure IO
     hIO.l
     Inp32.l
@@ -167,6 +181,7 @@ DeclareModule MoK
   
   Declare.l Precedency(Precedency.l = #Profile0)
   Declare.l Device(cDevice.l = #DeviceHID)
+  Declare.l DeviceID(mType.l = #DeviceID)
   Declare.l Mouse(cKey.l = #Left, delay.l = 32, Method.l = #Click, Type.l = #PROFILE)
   Declare.l Keyboard(cKey.l = #VK_SPACE, delay.l = 32, Method.l = #Click, Type.l = #PROFILE)
   
@@ -184,9 +199,6 @@ Module MoK
   ;-       MouseKey Module -> HID -> Init
   ;{----------------------------------------------------------
   
-  Declare.l SendInputHID(cType.l, cKey.l, cMethod.l, cParam.l)
-  Declare.l _ClouseHID()
-  
   Procedure.l _InitHID()
     If MoK\HID\lib_hid = 0 
       MoK\HID\lib_hid = OpenLibrary(#PB_Any, "hid.dll")
@@ -198,11 +210,9 @@ Module MoK
       MoK\HID\func_SetupDiEnumDeviceInfo            = GetFunction(MoK\HID\lib_setupapi, "SetupDiEnumDeviceInfo")
       MoK\HID\func_SetupDiGetDeviceInterfaceDetailA = GetFunction(MoK\HID\lib_setupapi, "SetupDiGetDeviceInterfaceDetailA")
       MoK\HID\func_SetupDiGetDeviceInterfaceDetailW = GetFunction(MoK\HID\lib_setupapi, "SetupDiGetDeviceInterfaceDetailW")
-      
-    Else
-      ProcedureReturn 0
     EndIf
-    ProcedureReturn 1
+    If MoK\HID\lib_hid <> 0 : ProcedureReturn 1 : EndIf
+    ProcedureReturn 0
   EndProcedure
   
   ;}----------------------------------------------------------
@@ -241,9 +251,6 @@ Module MoK
   
   Procedure.l _OpenHID()
     If Not _InitHID() : ProcedureReturn 0 : EndIf
-    If MoK\Info\OpenHID <> 0
-      If SendInputHID(3, 0, 0, 0) : ProcedureReturn 1 : Else : _ClouseHID() : EndIf
-    EndIf
     Protected HidGuid.Guid, hDevInfo.l, i.l, Result.l, Required.l, DevicePath.s
     Protected devInfoData.SP_DEVICE_INTERFACE_DATA, DataSize.l
     Protected *detailData.PSP_DEVICE_INTERFACE_DETAIL_DATA, hDevice.l, Security.SECURITY_ATTRIBUTES, Attributes.HIDD_ATTRIBUTES
@@ -256,7 +263,7 @@ Module MoK
     
     CallFunctionFast(MoK\HID\func_HidD_GetHidGuid, @HidGuid)
     
-    hDevInfo = SetupDiGetClassDevs_(@HidGuid, 0, 0, #DIGCF_PRESENT|#DIGCF_DEVICEINTERFACE)
+    hDevInfo = SetupDiGetClassDevs_(@HidGuid, 0, 0, #DIGCF_PRESENT | #DIGCF_DEVICEINTERFACE)
     
     If hDevInfo = #INVALID_HANDLE_VALUE : ProcedureReturn 0 : EndIf
     
@@ -276,7 +283,11 @@ Module MoK
       Result = CallFunctionFast(MoK\HID\func_HidD_GetAttributes , hDevice, @Attributes)
       If Attributes\ProductID = #HID_PID And Attributes\VendorID = #HID_VID
         SetupDiDestroyDeviceInfoList_(hDevInfo)
-        MoK\Info\OpenHID = hDevice
+        If Not MoK\Info\OpenHID
+          MoK\Info\OpenHID = hDevice
+        Else
+          CloseHandle_(hDevice)
+        EndIf
         ProcedureReturn 1
       Else
         CloseHandle_(hDevice)
@@ -713,10 +724,27 @@ Module MoK
   Procedure.l Device(cDevice.l = #DeviceHID)
     Select cDevice
       Case #DeviceHID
-        If _OpenHID() :ProcedureReturn 1 : EndIf
+        If _OpenHID() : ProcedureReturn 1 : EndIf
       Case #PS2
         ProcedureReturn _SearchPS2()
     EndSelect
+    ProcedureReturn 0
+  EndProcedure
+  
+  Procedure.l DeviceID(mType.l = #DeviceID)
+    If Not MoK\Info\OpenHID : ProcedureReturn 0 : EndIf
+    SendInputHID(#IDentifier, 0, 0, 0)
+    Protected KEY._KEY
+    If _ReadHID(@KEY, SizeOf(_KEY))
+      Select mType
+        Case #DeviceID
+          ProcedureReturn KEY\ID
+        Case #DeviceKey
+          ProcedureReturn KEY\Key
+        Case #DeviceType
+          ProcedureReturn KEY\Type
+      EndSelect
+    EndIf
     ProcedureReturn 0
   EndProcedure
   
@@ -760,15 +788,16 @@ CompilerIf #PB_Compiler_DLL And Not #PB_Compiler_Debugger
   EndProcedure
   
   ProcedureDLL.l Keyboard(cKey.l = #VK_SPACE, delay.l = 32, Method.l = MoK::#Click, Type.l = MoK::#PROFILE)
-    ProcedureReturn MoK::Mouse(cKey.l, delay.l, Method.l, Type.l)
+    ProcedureReturn MoK::Keyboard(cKey.l, delay.l, Method.l, Type.l)
   EndProcedure
   
 CompilerEndIf
 
 ; IDE Options = PureBasic 5.60 (Windows - x86)
 ; ExecutableFormat = Shared dll
-; CursorPosition = 29
-; Folding = QAAAAAoA-
+; CursorPosition = 736
+; FirstLine = 33
+; Folding = QIAAAAoQ+
 ; EnableAsm
 ; EnableThread
 ; EnableXP
