@@ -5,8 +5,8 @@ MoK
 
 **Библиотеки:**
 Для работы библиотеки необходимы след. библиотеки:
-[USB](https://github.com/GreenBytes95/USB)
-[PS2](https://github.com/GreenBytes95/PS2)
+* [USB](https://github.com/GreenBytes95/USB)
+* [PS2](https://github.com/GreenBytes95/PS2)
 
 **Описание:**
 Библиотка представляет собой эмуляцию устройст ввода, с выбором управляющих устройств.
