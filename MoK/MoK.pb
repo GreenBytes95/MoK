@@ -405,8 +405,9 @@ CompilerEndIf
 
 ; IDE Options = PureBasic 5.50 (Windows - x86)
 ; ExecutableFormat = Shared dll
-; CursorPosition = 99
-; Folding = RBAAAw
+; CursorPosition = 358
+; FirstLine = 22
+; Folding = RBAgIw
 ; EnableAsm
 ; EnableThread
 ; EnableXP
